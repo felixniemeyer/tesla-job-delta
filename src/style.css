@@ -13,3 +13,8 @@ a {
     text-decoration: underline;
   }
 }
+
+input {
+  background-color: #0008;
+  color: #eee; 
+}

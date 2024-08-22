@@ -5,16 +5,8 @@ import type { Status } from './status'
 
 import Delta from './components/Delta.vue'
 
-interface Snapshot {
-  id: number
-  timestamp: number
-}
-
 const fromState = ref<Status>()
 const toState = ref<Status>()
-
-const fromSnapshot = ref<Snapshot>()
-const toSnapshot = ref<Snapshot>()
 
 const fromTimestamp = ref<string>()
 const toTimestamp = ref<string>()
@@ -24,56 +16,56 @@ onMounted(() => {
 })
 
 function loadDelta() {
-  fetch('states/meta.json')
-    .then(response => response.text())
-    .then(async text => {
-      // parse line by line (id, timestamp)
-      const meta = text.split('\n').filter(line => line).map(line => {
-        const [id, timestamp] = line.split(',')
-        return { id: parseInt(id), timestamp: parseInt(timestamp) }
-      }) as Snapshot[]
+  const stateJson = localStorage.getItem('state')
+  const stateTimestamp = localStorage.getItem('stateTimestamp')
+  const prevStateJson = localStorage.getItem('prevState')
+  const prevStateTimestamp = localStorage.getItem('prevStateTimestamp')
 
-      if(meta.length > 1) {
-        // try to load previous state from local storage
-        const prev = localStorage.getItem('lastConsumedSnapshotId')
-        let snapshotFrom
-        if(prev) {
-          snapshotFrom = meta.find(snapshot => snapshot.id === parseInt(prev))
-        }
-        if(!snapshotFrom) {
-          snapshotFrom = meta[meta.length - 2]
-        } 
+  if(stateJson && stateTimestamp && prevStateJson && prevStateTimestamp) {
 
-        const snapshotTo: Snapshot = meta[meta.length - 1]
+    fromTimestamp.value = new Date(parseInt(prevStateTimestamp)).toString()
+    toTimestamp.value = new Date(parseInt(stateTimestamp)).toString()
 
-        fromSnapshot.value = snapshotFrom
-        toSnapshot.value = snapshotTo
+    fromState.value = JSON.parse(prevStateJson)
+    toState.value = JSON.parse(stateJson)
 
-        fromTimestamp.value = new Date(snapshotFrom.timestamp).toString()
-        toTimestamp.value = new Date(snapshotTo.timestamp).toString()
-
-        ;[fromState.value, toState.value] = await Promise.all([
-          fetch(`states/${snapshotFrom.id}.json`)
-            .then(response => response.json())
-            .then(data => {
-              return data
-            }),
-          fetch(`states/${snapshotTo.id}.json`)
-            .then(response => response.json())
-            .then(data => {
-              return data
-            })
-        ])
-      }
-    })
-}
-
-function clearDelta() {
-  if(toSnapshot.value) {
-    localStorage.setItem('lastConsumedSnapshotId', toSnapshot.value.id.toString())
+    console.log('done running loadDelta')
   }
-  loadDelta()
 }
+
+const statusInput = ref<HTMLInputElement>()
+const error = ref<string>()
+
+function setNewStatus() {
+  if(statusInput.value) {
+    const json = statusInput.value.value
+    if(json !== "") {
+      try {
+        JSON.parse(statusInput.value.value)
+        const previousState = localStorage.getItem('state')
+        const previousStateTimestamp = localStorage.getItem('stateTimestamp')
+        const timestamp = Date.now()
+        if(previousState && previousStateTimestamp) {
+          localStorage.setItem('state', json)
+          localStorage.setItem('stateTimestamp', timestamp.toString())
+          localStorage.setItem('prevState', previousState)
+          localStorage.setItem('prevStateTimestamp', previousStateTimestamp.toString())
+        } else {
+          localStorage.setItem('state', json)
+          localStorage.setItem('stateTimestamp', timestamp.toString())
+        }
+        error.value = ""
+        statusInput.value.value = ""
+        loadDelta()
+      } catch(e) {
+        error.value = "failed to set new state: " + e
+      }
+    } else {
+      error.value = "empty input"
+    }
+  }
+}
+
 
 </script>
 
@@ -85,12 +77,24 @@ function clearDelta() {
 
   </p>
   <p>
-    Browse jobs on the official site: <a href="https://www.tesla.com/careers/search">Tesla Careers</a>
+    follow these manual steps: 
+    <ol>
+      <li>go to <a target="_blank" href="https://www.tesla.com/cua-api/apps/careers/state">https://www.tesla.com/cua-api/apps/careers/state</a></li>
+      <li>copy the json response to your clipboard</li>
+      <li>paste the json in the following input field and submit</li>
+    </ol>
+  </p>
+  <p class=inputs>
+    <input type="text" accept=".json" ref="statusInput" />
+    <button @click="setNewStatus">set current state</button>
+    <span class=error>{{ error }}</span>
   </p>
   <div v-if="fromState && toState" class=list>
     <Delta :from="fromState" :to="toState" />
   </div>
-  <button class=reset @click=clearDelta >clear delta</button>
+  <p>
+    Browse jobs on the official site: <a href="https://www.tesla.com/careers/search">Tesla Careers</a>
+  </p>
 </template>
 
 <style scoped>
@@ -109,5 +113,12 @@ function clearDelta() {
 .list {
   margin-bottom: 2em;
 }
+.error {
+  color: #faa;
+}
+.inputs * {
+  margin: 0.5em;
+}
+
 
 </style>

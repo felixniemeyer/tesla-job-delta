@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 
 import type { Status, Listing } from '../status'
 
@@ -23,7 +23,13 @@ const deleted = computed(() => Object.values(map.value).filter(entry => entry.de
 const added = computed(() => Object.values(map.value).filter(entry => entry.delta === "added"))
 const updated = computed(() => Object.values(map.value).filter(entry => entry.delta === "updated"))
 
-onMounted(() => {
+onMounted(findDelta)
+
+// watch for changes in the props
+watch(() => props.from, findDelta)
+watch(() => props.to, findDelta)
+
+function findDelta(){
   const tempMap: any = {}
   props.from.listings
     .filter(filter)
@@ -51,9 +57,9 @@ onMounted(() => {
       }
     })
   map.value = tempMap
-})
+}
 
-function filter(listing: Listing) {
+function filter(_listing: Listing) {
   return true
 }
 
@@ -69,26 +75,26 @@ function different(from: Listing, to: Listing) {
 </script>
 
 <template>
-  <div class='deleted'>
-    <h2>{{ deleted.length }} Deleted</h2>
-    <div v-for="entry in deleted" :key="entry.from!.id">
-      <ListingComponent :listing="entry.from!" />
-    </div>
-    <div v-if="deleted.length === 0" class="read-the-docs">No deleted listings</div>
-  </div>
   <div class='added'>
     <h2>{{ added.length }} Added</h2>
     <div v-for="entry in added" :key="entry.to!.id">
-      <ListingComponent :listing="entry.to!" />
+      <ListingComponent :listing="entry.to!" :link=true />
     </div>
     <div v-if="added.length === 0" class="read-the-docs">No added listings</div>
   </div>
   <div class='updated'>
     <h2>{{ updated.length }} Updated</h2>
     <div v-for="entry in updated" :key="entry.to!.id">
-      <ListingComponent :listing="entry.to!" />
+      <ListingComponent :listing="entry.to!" :link=true />
     </div>
     <div v-if="updated.length === 0" class="read-the-docs">No updated listings</div>
+  </div>
+  <div class='deleted'>
+    <h2>{{ deleted.length }} Deleted</h2>
+    <div v-for="entry in deleted" :key="entry.from!.id">
+      <ListingComponent :listing="entry.from!" :link=false />
+    </div>
+    <div v-if="deleted.length === 0" class="read-the-docs">No deleted listings</div>
   </div>
 </template>
 

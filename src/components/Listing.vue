@@ -3,17 +3,23 @@ import type { Listing } from '../status'
 
 defineProps<{ 
   listing: Listing, 
+  link: boolean
 }>()
 
 </script>
 
 <template>
   <a class=container
+    v-if="link"
     target="_blank"
     :href="'https://www.tesla.com/careers/search/job/tjt-' + listing.id">
     <div class=id>{{ listing.id }}: </div> 
     <div class=title>{{ listing.t }}</div>
   </a>
+  <div class=container v-else>
+    <div class=id>{{ listing.id }}: </div> 
+    <div class=title>{{ listing.t }}</div>
+  </div>
 </template>
 
 <style scoped>
