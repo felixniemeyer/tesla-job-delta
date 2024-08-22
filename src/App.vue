@@ -3,17 +3,27 @@ import { ref, onMounted } from 'vue'
 
 import type { Status } from './status'
 
+import Delta from './components/Delta.vue'
+
 interface Snapshot {
   id: number
   timestamp: number
 }
 
-const history = ref<Snapshot[]>([])
-
 const fromState = ref<Status>()
 const toState = ref<Status>()
 
+const fromSnapshot = ref<Snapshot>()
+const toSnapshot = ref<Snapshot>()
+
+const fromTimestamp = ref<string>()
+const toTimestamp = ref<string>()
+
 onMounted(() => {
+  loadDelta()
+})
+
+function loadDelta() {
   fetch('states/meta.json')
     .then(response => response.text())
     .then(async text => {
@@ -25,24 +35,30 @@ onMounted(() => {
 
       if(meta.length > 1) {
         // try to load previous state from local storage
-        let snapshotFrom  
         const prev = localStorage.getItem('lastConsumedSnapshotId')
-        if (prev) {
-          snapshotFrom = parseInt(prev)
-        } else {
-          snapshotFrom = meta[0].id
+        let snapshotFrom
+        if(prev) {
+          snapshotFrom = meta.find(snapshot => snapshot.id === parseInt(prev))
         }
-        console.log(snapshotFrom)
+        if(!snapshotFrom) {
+          snapshotFrom = meta[meta.length - 2]
+        } 
 
-        const snapshotTo: number = meta[meta.length - 1].id; 
+        const snapshotTo: Snapshot = meta[meta.length - 1]
 
-        [fromState.value, toState.value] = await Promise.all([
-          fetch(`states/${snapshotFrom}.json`)
+        fromSnapshot.value = snapshotFrom
+        toSnapshot.value = snapshotTo
+
+        fromTimestamp.value = new Date(snapshotFrom.timestamp).toString()
+        toTimestamp.value = new Date(snapshotTo.timestamp).toString()
+
+        ;[fromState.value, toState.value] = await Promise.all([
+          fetch(`states/${snapshotFrom.id}.json`)
             .then(response => response.json())
             .then(data => {
               return data
             }),
-          fetch(`states/${snapshotTo}.json`)
+          fetch(`states/${snapshotTo.id}.json`)
             .then(response => response.json())
             .then(data => {
               return data
@@ -50,19 +66,31 @@ onMounted(() => {
         ])
       }
     })
-})
+}
+
+function clearDelta() {
+  if(toSnapshot.value) {
+    localStorage.setItem('lastConsumedSnapshotId', toSnapshot.value.id.toString())
+  }
+  loadDelta()
+}
 
 </script>
 
 <template>
+  <h1>Tesla Job Delta</h1>
+  
   <p> 
-    comparing { toTimestamp } to { fromTimestamp }
+  Showing change of tesla job set from <br/> {{ fromTimestamp }} to <br/> {{ toTimestamp }}
+
   </p>
-  <p> {{ history }} </p>
-  <div v-if="fromState && toState">
-    delta
+  <p>
+    Browse jobs on the official site: <a href="https://www.tesla.com/careers/search">Tesla Careers</a>
+  </p>
+  <div v-if="fromState && toState" class=list>
+    <Delta :from="fromState" :to="toState" />
   </div>
-  <button>thanks, I'm up to date</button>
+  <button class=reset @click=clearDelta >clear delta</button>
 </template>
 
 <style scoped>
@@ -78,4 +106,8 @@ onMounted(() => {
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 }
+.list {
+  margin-bottom: 2em;
+}
+
 </style>
