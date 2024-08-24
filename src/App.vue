@@ -5,6 +5,8 @@ import type { Status } from './status'
 
 import Delta from './components/Delta.vue'
 
+import { compressToUTF16, decompressFromUTF16 } from 'lz-string'
+
 const fromState = ref<Status>()
 const toState = ref<Status>()
 
@@ -21,33 +23,32 @@ const canGoBack = ref(false)
 const currentD = ref(0)
 
 function loadDelta(d = 0) {
+  console.log('loadDelta', d)
+
   currentD.value = d
 
   const dp1 = d + 1
-  const stateJson = localStorage.getItem('state' + d)
-  const stateTimestamp = localStorage.getItem('timestamp' + d)
-
-  console.log('state' + d, stateJson, stateTimestamp)
+  const compressedJson = localStorage.getItem('state' + d)
+  const timestamp = localStorage.getItem('timestamp' + d)
 
   fromState.value = undefined
   toState.value = undefined
   canGoBack.value = false
   encouragement.value = false
 
-  if(stateJson != null && stateTimestamp != null) {
-    const prevStateJson = localStorage.getItem('state' + dp1)
-    const prevStateTimestamp = localStorage.getItem('timestamp' + dp1)
+  if(compressedJson != null && timestamp != null) {
+    const prevStateCompressedJson = localStorage.getItem('state' + dp1)
+    const prevTimestamp = localStorage.getItem('timestamp' + dp1)
 
-    console.log('prev state', prevStateJson, prevStateTimestamp)
-    if(prevStateJson != null && prevStateTimestamp != null) {
-      fromTimestamp.value = new Date(parseInt(prevStateTimestamp)).toString()
-      toTimestamp.value = new Date(parseInt(stateTimestamp)).toString()
+    if(prevStateCompressedJson != null && prevTimestamp != null) {
+      fromTimestamp.value = new Date(parseInt(prevTimestamp)).toString()
+      toTimestamp.value = new Date(parseInt(timestamp)).toString()
 
       const dp2 = dp1 + 1
       canGoBack.value = (localStorage.getItem('state' + dp2) != null && localStorage.getItem('timestamp' + dp2) != null)
 
-      fromState.value = JSON.parse(prevStateJson)
-      toState.value = JSON.parse(stateJson)
+      fromState.value = JSON.parse(decompressFromUTF16(prevStateCompressedJson))
+      toState.value = JSON.parse(decompressFromUTF16(compressedJson))
       console.log('fromState', fromState.value)
     } else if (d == 0) {
       encouragement.value = true
@@ -58,6 +59,7 @@ function loadDelta(d = 0) {
 const statusInput = ref<HTMLInputElement>()
 const error = ref<string>()
 
+
 function setNewStatus() {
   if(statusInput.value) {
     const json = statusInput.value.value
@@ -67,23 +69,56 @@ function setNewStatus() {
         
         let d = 0
         let previousState = localStorage.getItem('state' + d)
-        let previousTimestamp = localStorage.getItem('stateTimestamp' + d)
-        localStorage.setItem('state' + d, json)
-        localStorage.setItem('timestamp' + d, Date.now().toString())
+        let previousTimestamp = localStorage.getItem('timestamp' + d)
+
+        let success = false
+        while(!success) {
+          try {
+            localStorage.setItem('state' + d, compressToUTF16(json))
+            localStorage.setItem('timestamp' + d, Date.now().toString())
+            success = true
+          } catch(e: any) {
+            if(e.name == 'QuotaExceededError') {
+              // remove oldest state
+              let d = 0
+              while(localStorage.getItem('state' + d) != null) {
+                d++
+              }
+              d--
+              localStorage.removeItem('state' + d)
+              localStorage.removeItem('timestamp' + d)
+              console.log('dropping some history') 
+            } else {
+              throw e
+            }
+          }
+        }
+
+        console.log('previousState', previousState)
+        console.log('previousTimestamp', previousTimestamp)
 
         // shift history
-        while(previousState != null && previousTimestamp != null) {
-          d++
-          const tempState = localStorage.getItem('state' + d)
-          const tempStateTimestamp = localStorage.getItem('stateTimestamp' + d)
-          localStorage.setItem('state' + d, previousState)
-          localStorage.setItem('timestamp' + d, previousTimestamp)
-          previousState = tempState
-          previousTimestamp = tempStateTimestamp
+        try {
+          while(previousState != null && previousTimestamp != null) {
+            console.log('shifting', d)
+            d++
+            const tempState = localStorage.getItem('state' + d)
+            const tempStateTimestamp = localStorage.getItem('timestamp' + d)
+            localStorage.setItem('state' + d, previousState)
+            localStorage.setItem('timestamp' + d, previousTimestamp)
+            previousState = tempState
+            previousTimestamp = tempStateTimestamp
+          }
+        } catch(e: any) {
+          if(e.name == 'QuotaExceededError') {
+            console.log('dropping some history') 
+          } else {
+            throw e
+          }
         }
 
         error.value = ""
-        statusInput.value.value = ""
+//        statusInput.value.value = ""
         loadDelta()
       } catch(e) {
         error.value = "failed to set new state: " + e
@@ -102,13 +137,13 @@ function clearStorage() {
 function clearHistory() {
   let d = 2
   let previousState = localStorage.getItem('state' + d)
-  let previousTimestamp = localStorage.getItem('stateTimestamp' + d)
+  let previousTimestamp = localStorage.getItem('timestamp' + d)
   while(previousState != null || previousTimestamp != null) {
     localStorage.removeItem('state' + d)
     localStorage.removeItem('timestamp' + d)
     d++
     previousState = localStorage.getItem('state' + d)
-    previousTimestamp = localStorage.getItem('stateTimestamp' + d)
+    previousTimestamp = localStorage.getItem('timestamp' + d)
   }
   loadDelta(0)
 }
