@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { Listing } from '../status'
+import type { ListingInfo } from './Delta.vue'
 
 defineProps<{ 
   listing: Listing, 
+  info: ListingInfo,
   link: boolean
 }>()
 

@@ -10,10 +10,17 @@ const props = defineProps<{
   to: Status
 }>()
 
+interface ListingInfo {
+  location: string
+  department: string
+  type: string
+}
+
 interface Entry {
   from?: Listing
   to?: Listing
   delta: "added" | "removed" | "updated"
+  info?: ListingInfo
 }
 
 const map = ref<Record<string, Entry>>({})
@@ -22,13 +29,16 @@ const deleted = computed(() => Object.values(map.value).filter(entry => entry.de
 const added = computed(() => Object.values(map.value).filter(entry => entry.delta === "added"))
 const updated = computed(() => Object.values(map.value).filter(entry => entry.delta === "updated"))
 
-onMounted(findDelta)
+onMounted(() => {
+  findDelta()
+  loadFilter()
+})
 
 // watch for changes in the props
 watch(() => props.from, findDelta)
 watch(() => props.to, findDelta)
 
-function findDelta(){
+function findDelta() {
   const tempMap: any = {}
   props.from.listings
     .filter(filter)
@@ -55,7 +65,21 @@ function findDelta(){
         }
       }
     })
+  for(const key in tempMap) {
+    const entry = tempMap[key]
+    const state = entry.delta === "removed" ? props.from : props.to
+    const location = state.lookup.locations[entry.l]
+    entry.info = {
+      location,
+      department: state.lookup.departments[entry.dp], 
+      type: state.lookup.types[entry.y], 
+    }
+  }
   map.value = tempMap
+}
+
+const filters = 0 
+function loadFilter() {
 }
 
 function filter(_listing: Listing) {

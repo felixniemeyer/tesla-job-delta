@@ -11,7 +11,7 @@ export interface SiteMap {
 export interface StateMap {
   id: string, // state id
   name: string, // state name
-  cities: {(city: string): string[]} 
+  cities: {[city: string]: string[]} 
 }
 
 export interface Listing {
@@ -25,12 +25,13 @@ export interface Listing {
 
 export interface Status {
   "lookup": {
-    "regions": {(key: string): string},
-    "sites": {(key: string): string},
-    "locations": {(key: string): string},
-    "departments": {(key: string): string},
-    "types": {(key: string): string},
+    "regions": {[key: string]: string},
+    "sites": {[key: string]: string},
+    "locations": {[key: string]: string},
+    "departments": {[key: string]: string},
+    "types": {[key: string]: string},
   },
-  "departments": {(key: string): string[]},
-  "listings": Listing[]
+  "departments": {[key: string]: string[]},
+  "listings": Listing[], 
+  "geo": GeoMap[]
 }
