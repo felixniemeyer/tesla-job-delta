@@ -23,8 +23,6 @@ const canGoBack = ref(false)
 const currentD = ref(0)
 
 function loadDelta(d = 0) {
-  console.log('loadDelta', d)
-
   currentD.value = d
 
   const dp1 = d + 1
@@ -49,7 +47,6 @@ function loadDelta(d = 0) {
 
       fromState.value = JSON.parse(decompressFromUTF16(prevStateCompressedJson))
       toState.value = JSON.parse(decompressFromUTF16(compressedJson))
-      console.log('fromState', fromState.value)
     } else if (d == 0) {
       encouragement.value = true
     }     
@@ -66,6 +63,7 @@ function setNewStatus() {
     if(json !== "") {
       try {
         JSON.parse(statusInput.value.value) // try parsing catch else
+        const compressedState = compressToUTF16(json)
         
         let d = 0
         let previousState = localStorage.getItem('state' + d)
@@ -74,7 +72,7 @@ function setNewStatus() {
         let success = false
         while(!success) {
           try {
-            localStorage.setItem('state' + d, compressToUTF16(json))
+            localStorage.setItem('state' + d, compressedState)
             localStorage.setItem('timestamp' + d, Date.now().toString())
             success = true
           } catch(e: any) {
@@ -94,13 +92,9 @@ function setNewStatus() {
           }
         }
 
-        console.log('previousState', previousState)
-        console.log('previousTimestamp', previousTimestamp)
-
         // shift history
         try {
           while(previousState != null && previousTimestamp != null) {
-            console.log('shifting', d)
             d++
             const tempState = localStorage.getItem('state' + d)
             const tempStateTimestamp = localStorage.getItem('timestamp' + d)
