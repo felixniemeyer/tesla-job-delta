@@ -15,21 +15,30 @@ onMounted(() => {
   loadDelta()
 })
 
+const updatedState = ref(false)
+const keepItUp = ref(false)
+
 function loadDelta() {
   const stateJson = localStorage.getItem('state')
   const stateTimestamp = localStorage.getItem('stateTimestamp')
-  const prevStateJson = localStorage.getItem('prevState')
-  const prevStateTimestamp = localStorage.getItem('prevStateTimestamp')
 
-  if(stateJson && stateTimestamp && prevStateJson && prevStateTimestamp) {
+  fromState.value = undefined
+  toState.value = undefined
+  keepItUp.value = false
 
-    fromTimestamp.value = new Date(parseInt(prevStateTimestamp)).toString()
-    toTimestamp.value = new Date(parseInt(stateTimestamp)).toString()
+  if(stateJson && stateTimestamp) {
+    const prevStateJson = localStorage.getItem('prevState')
+    const prevStateTimestamp = localStorage.getItem('prevStateTimestamp')
 
-    fromState.value = JSON.parse(prevStateJson)
-    toState.value = JSON.parse(stateJson)
+    if(prevStateJson && prevStateTimestamp) {
+      fromTimestamp.value = new Date(parseInt(prevStateTimestamp)).toString()
+      toTimestamp.value = new Date(parseInt(stateTimestamp)).toString()
 
-    console.log('done running loadDelta')
+      fromState.value = JSON.parse(prevStateJson)
+      toState.value = JSON.parse(stateJson)
+    } else {
+      keepItUp.value = true
+    }     
   }
 }
 
@@ -56,6 +65,7 @@ function setNewStatus() {
         }
         error.value = ""
         statusInput.value.value = ""
+        updatedState.value = true
         loadDelta()
       } catch(e) {
         error.value = "failed to set new state: " + e
@@ -66,34 +76,51 @@ function setNewStatus() {
   }
 }
 
+function clearStorage() {
+  localStorage.clear()
+  updatedState.value = false
+  loadDelta()
+}
 
 </script>
 
 <template>
   <h1>Tesla Job Delta</h1>
-  
-  <p> 
-  Showing change of tesla job set from <br/> {{ fromTimestamp }} to <br/> {{ toTimestamp }}
-
-  </p>
-  <p>
-    follow these manual steps: 
-    <ol>
-      <li>go to <a target="_blank" href="https://www.tesla.com/cua-api/apps/careers/state">https://www.tesla.com/cua-api/apps/careers/state</a></li>
-      <li>copy the json response to your clipboard</li>
-      <li>paste the json in the following input field and submit</li>
-    </ol>
-  </p>
-  <p class=inputs>
-    <input type="text" accept=".json" ref="statusInput" />
-    <button @click="setNewStatus">set current state</button>
-    <span class=error>{{ error }}</span>
-  </p>
-  <div v-if="fromState && toState" class=list>
-    <Delta :from="fromState" :to="toState" />
-  </div>
+  <template v-if="keepItUp">
+    <p>
+      Great, you have already added the state of tesla jobs once. 
+      When you add a new state, you will see the changes.
+    </p>
+  </template>
+  <template v-if='!updatedState'>
+    <p>
+      Tell me the current state of tesla jobs. <br/>
+      Follow these manual steps: 
+      <ol>
+        <li>go to <a target="_blank" href="https://www.tesla.com/cua-api/apps/careers/state">https://www.tesla.com/cua-api/apps/careers/state</a></li>
+        <li>copy the json response to your clipboard</li>
+        <li>paste the json in the following input field and submit</li>
+      </ol>
+    </p>
+    <p class=inputs>
+      <input type="text" accept=".json" ref="statusInput" />
+      <button @click="setNewStatus">set current state</button>
+      <span class=error>{{ error }}</span>
+    </p>
+  </template>
+  <template v-if="fromState && toState" >
+    <p> 
+      Showing change of tesla job set from <br/> {{ fromTimestamp }} to <br/> {{ toTimestamp }}
+    </p>
+    <div class=list>
+      <Delta :from="fromState" :to="toState" />
+    </div>
+  </template>
   <p>
     Browse jobs on the official site: <a href="https://www.tesla.com/careers/search">Tesla Careers</a>
+  </p>
+  <p>
+    clear local storage: <button @click="clearStorage">clear</button>
   </p>
 </template>
 
@@ -119,6 +146,5 @@ function setNewStatus() {
 .inputs * {
   margin: 0.5em;
 }
-
 
 </style>

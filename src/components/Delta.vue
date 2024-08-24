@@ -10,7 +10,6 @@ const props = defineProps<{
   to: Status
 }>()
 
-
 interface Entry {
   from?: Listing
   to?: Listing
