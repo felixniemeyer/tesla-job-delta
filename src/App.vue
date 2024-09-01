@@ -23,6 +23,8 @@ const canGoBack = ref(false)
 const currentD = ref(0)
 
 function loadDelta(d = 0) {
+  console.log('load delta') 
+
   currentD.value = d
 
   const dp1 = d + 1
@@ -157,7 +159,7 @@ function goForward() {
 </script>
 
 <template>
-  <h1>Tesla Job Delta</h1>
+  <h1>Jakob's spying company Job Delta</h1>
   <template v-if="encouragement">
     <p>
       Great, you have already added the state of tesla jobs once. 

@@ -1,37 +1,42 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 import type { Status, Listing } from '../status'
 
-import ListingComponent from './Listing.vue'
+import ListingWrapperComponent from './ListingWrapper.vue'
+import ChecklistComponent from './Checklist.vue'
+import type { Checklist, Labels } from './Checklist.vue'
 
 const props = defineProps<{ 
   from: Status, 
   to: Status
 }>()
 
-interface ListingInfo {
+export interface ListingInfo {
   location: string
   department: string
   type: string
 }
 
 interface Entry {
-  from?: Listing
-  to?: Listing
-  delta: "added" | "removed" | "updated"
-  info?: ListingInfo
+  listing: Listing
+  info: ListingInfo
 }
 
-const map = ref<Record<string, Entry>>({})
+const deleted = ref<Entry[]>([])
+const added = ref<Entry[]>([])
+const updated = ref<Entry[]>([])
 
-const deleted = computed(() => Object.values(map.value).filter(entry => entry.delta === "removed"))
-const added = computed(() => Object.values(map.value).filter(entry => entry.delta === "added"))
-const updated = computed(() => Object.values(map.value).filter(entry => entry.delta === "updated"))
+const locationNames = ref<Labels>({})
+const departmentNames = ref<Labels>({})
+const typeNames = ref<Labels>({})
+
+const selectedLocations = ref<Checklist>({})
+const selectedDepartments = ref<Checklist>({})
+const selectedTypes = ref<Checklist>({})
 
 onMounted(() => {
   findDelta()
-  loadFilter()
 })
 
 // watch for changes in the props
@@ -39,47 +44,67 @@ watch(() => props.from, findDelta)
 watch(() => props.to, findDelta)
 
 function findDelta() {
-  const tempMap: any = {}
-  props.from.listings
-    .filter(filter)
-    .forEach(listing => {
-      tempMap[listing.id] = {
-        from: listing,
-        delta: "removed"
-      }
-    })
+  console.log('finding delta') 
+  const pastListings = {} as {[key: string]: Listing}
+  props.from.listings.filter(filter).forEach(listing => {
+    pastListings[listing.id] = listing
+  })
+
+  deleted.value = []
+  added.value = []
+  updated.value = []
+
+  findOptions()
+
   props.to.listings
     .filter(filter)
     .forEach(listing => {
-      if (tempMap[listing.id]) {
-        if(different(tempMap[listing.id].from, listing)) {
-          tempMap[listing.id].to = listing
-          tempMap[listing.id].delta = "updated"
+      if (pastListings[listing.id]) {
+        if(different(pastListings[listing.id], listing)) {
+          updated.value.push({
+            listing, 
+            info: getInfo(listing, props.to)
+          })
         } else {
-          delete tempMap[listing.id]
+          delete pastListings[listing.id]
         }
       } else {
-        tempMap[listing.id] = {
-          to: listing, 
-          delta: "added"
-        }
+        added.value.push({
+          listing, 
+          info: getInfo(listing, props.to)
+        })
       }
     })
-  for(const key in tempMap) {
-    const entry = tempMap[key]
-    const state = entry.delta === "removed" ? props.from : props.to
-    const location = state.lookup.locations[entry.l]
-    entry.info = {
-      location,
-      department: state.lookup.departments[entry.dp], 
-      type: state.lookup.types[entry.y], 
-    }
+
+  for(const key in pastListings) {
+    deleted.value.push({
+      listing: pastListings[key], 
+      info: getInfo(pastListings[key], props.from)
+    })
   }
-  map.value = tempMap
 }
 
-const filters = 0 
-function loadFilter() {
+function findOptions() {
+  Object.entries(props.to.lookup.locations).forEach(([key, value]) => {
+    locationNames.value[key] = value
+    selectedLocations.value[key] ||= true
+  })
+  Object.entries(props.to.lookup.departments).forEach(([key, value]) => {
+    departmentNames.value[key] = value
+    selectedDepartments.value[key] ||= true
+  })
+  Object.entries(props.to.lookup.types).forEach(([key, value]) => {
+    typeNames.value[key] = value
+    selectedTypes.value[key] ||= true
+  }, {} as Checklist)
+}
+
+function getInfo(listing: Listing, state: Status) {
+  return {
+    location: state.lookup.locations[listing.l], 
+    department: state.lookup.departments[listing.dp], 
+    type: state.lookup.types[listing.y], 
+  }
 }
 
 function filter(_listing: Listing) {
@@ -98,25 +123,24 @@ function different(from: Listing, to: Listing) {
 </script>
 
 <template>
+  <div class=filter>
+    <ChecklistComponent name="locations" :checklist="selectedLocations" :labels="locationNames" />
+    <ChecklistComponent name="departments" :checklist="selectedDepartments" :labels="departmentNames" />
+    <ChecklistComponent name="types" :checklist="selectedTypes" :labels="typeNames" />
+  </div>  
   <div class='added'>
     <h2>{{ added.length }} Added</h2>
-    <div v-for="entry in added" :key="entry.to!.id">
-      <ListingComponent :listing="entry.to!" :link=true />
-    </div>
+    <ListingWrapperComponent v-for="entry in added" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=true />
     <div v-if="added.length === 0" class="read-the-docs">No added listings</div>
   </div>
   <div class='updated'>
     <h2>{{ updated.length }} Updated</h2>
-    <div v-for="entry in updated" :key="entry.to!.id">
-      <ListingComponent :listing="entry.to!" :link=true />
-    </div>
+    <ListingWrapperComponent v-for="entry in updated" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=true />
     <div v-if="updated.length === 0" class="read-the-docs">No updated listings</div>
   </div>
   <div class='deleted'>
     <h2>{{ deleted.length }} Deleted</h2>
-    <div v-for="entry in deleted" :key="entry.from!.id">
-      <ListingComponent :listing="entry.from!" :link=false />
-    </div>
+    <ListingWrapperComponent v-for="entry in deleted" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=false />
     <div v-if="deleted.length === 0" class="read-the-docs">No deleted listings</div>
   </div>
 </template>
