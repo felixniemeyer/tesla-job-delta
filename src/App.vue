@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 
 import type { Status } from './status'
 
-import Delta from './components/Delta.vue'
+import DeltaComponent from './components/Delta.vue'
 
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string'
 
@@ -23,8 +23,6 @@ const canGoBack = ref(false)
 const currentD = ref(0)
 
 function loadDelta(d = 0) {
-  console.log('load delta') 
-
   currentD.value = d
 
   const dp1 = d + 1
@@ -193,7 +191,7 @@ function goForward() {
       </div>
     </div>
     <div class=list>
-      <Delta :from="fromState" :to="toState" />
+      <DeltaComponent :from="fromState" :to="toState" />
     </div>
   </div>
   <p>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onBeforeMount, watch } from 'vue'
 
 import type { Status, Listing } from '../status'
 
@@ -27,15 +27,7 @@ const deleted = ref<Entry[]>([])
 const added = ref<Entry[]>([])
 const updated = ref<Entry[]>([])
 
-const locationNames = ref<Labels>({})
-const departmentNames = ref<Labels>({})
-const typeNames = ref<Labels>({})
-
-const selectedLocations = ref<Checklist>({})
-const selectedDepartments = ref<Checklist>({})
-const selectedTypes = ref<Checklist>({})
-
-onMounted(() => {
+onBeforeMount(() => {
   findDelta()
 })
 
@@ -44,7 +36,6 @@ watch(() => props.from, findDelta)
 watch(() => props.to, findDelta)
 
 function findDelta() {
-  console.log('finding delta') 
   const pastListings = {} as {[key: string]: Listing}
   props.from.listings.filter(filter).forEach(listing => {
     pastListings[listing.id] = listing
@@ -84,7 +75,16 @@ function findDelta() {
   }
 }
 
+const locationNames = ref<Labels>({})
+const departmentNames = ref<Labels>({})
+const typeNames = ref<Labels>({})
+
+const selectedLocations = ref<Checklist>({})
+const selectedDepartments = ref<Checklist>({})
+const selectedTypes = ref<Checklist>({})
+
 function findOptions() {
+  console.log('find options, e.g. departments=', JSON.stringify(props.to.lookup.departments))
   Object.entries(props.to.lookup.locations).forEach(([key, value]) => {
     locationNames.value[key] = value
     selectedLocations.value[key] ||= true
