@@ -78,19 +78,28 @@ function invertSelection() {
   })
 }
 
+function exclusiveSelect() {
+  list.forEach(entry => {
+    props.checklist[entry.id] = false
+  })
+  selectAll()
+}
+
 </script>
 
 <template>
   <div class="checklist">
     {{ name }}
     <input v-model="search" placeholder="Search" @input="expand" />
-    <button @click="toggleCollapsed">{{ collapsed ? 'Show' : 'Hide' }}</button>
+    <button @click="search = ''">X</button>
+    <button @click="toggleCollapsed">{{ collapsed ? 'show' : 'hide' }}</button>
     <div class='buttons'>
       <button @click="selectNone">Select None</button>
       <button @click="selectAll">Select All</button>
       <button @click="invertSelection">Invert Selection</button> 
       <template v-if='search !== ""'>
         <span > (refers to search results) </span>
+        <button @click="exclusiveSelect">Exclusively Select Search Results</button>
       </template>
     </div>
     <div v-if="!collapsed" class='boxes'>
@@ -117,6 +126,10 @@ function invertSelection() {
 }
 .boxes {
   margin: 0.5rem; 
+  /* no break */
+  & * {
+    white-space: nowrap;
+  }
 }
 
 button {
