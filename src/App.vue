@@ -157,7 +157,7 @@ function goForward() {
 </script>
 
 <template>
-  <h1>Jakob's spying company Job Delta</h1>
+  <h1>Tesla Jobs Delta</h1>
   <template v-if="encouragement">
     <p>
       Great, you have already added the state of tesla jobs once. 
