@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeMount, watch } from 'vue'
+import { ref, onBeforeMount, watch, computed } from 'vue'
 
 import type { Status, Listing } from '../status'
 
@@ -37,7 +37,7 @@ watch(() => props.to, findDelta)
 
 function findDelta() {
   const pastListings = {} as {[key: string]: Listing}
-  props.from.listings.filter(filter).forEach(listing => {
+  props.from.listings.forEach(listing => {
     pastListings[listing.id] = listing
   })
 
@@ -48,7 +48,6 @@ function findDelta() {
   findOptions()
 
   props.to.listings
-    .filter(filter)
     .forEach(listing => {
       if (pastListings[listing.id]) {
         if(different(pastListings[listing.id], listing)) {
@@ -74,6 +73,10 @@ function findDelta() {
     })
   }
 }
+
+const filteredAdded = computed(() => added.value.filter(filter))
+const filteredUpdated = computed(() => updated.value.filter(filter))
+const filteredDeleted = computed(() => deleted.value.filter(filter))
 
 const locationNames = ref<Labels>({})
 const departmentNames = ref<Labels>({})
@@ -107,8 +110,8 @@ function getInfo(listing: Listing, state: Status) {
   }
 }
 
-function filter(_listing: Listing) {
-  return true
+function filter({listing}: Entry) {
+  return selectedLocations.value[listing.l] && selectedDepartments.value[listing.dp] && selectedTypes.value[listing.y]
 }
 
 function different(from: Listing, to: Listing) {
@@ -124,23 +127,23 @@ function different(from: Listing, to: Listing) {
 
 <template>
   <div class=filter>
-    <ChecklistComponent name="locations" :checklist="selectedLocations" :labels="locationNames" />
-    <ChecklistComponent name="departments" :checklist="selectedDepartments" :labels="departmentNames" />
-    <ChecklistComponent name="types" :checklist="selectedTypes" :labels="typeNames" />
+    <ChecklistComponent @change="" name="locations" :checklist="selectedLocations" :labels="locationNames" />
+    <ChecklistComponent @change="" name="departments" :checklist="selectedDepartments" :labels="departmentNames" />
+    <ChecklistComponent @change="" name="types" :checklist="selectedTypes" :labels="typeNames" />
   </div>  
   <div class='added'>
-    <h2>{{ added.length }} Added</h2>
-    <ListingWrapperComponent v-for="entry in added" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=true />
+    <h2>{{ filteredAdded.length }}/{{ added.length }} Added</h2>
+    <ListingWrapperComponent v-for="entry in filteredAdded" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=true />
     <div v-if="added.length === 0" class="read-the-docs">No added listings</div>
   </div>
   <div class='updated'>
-    <h2>{{ updated.length }} Updated</h2>
-    <ListingWrapperComponent v-for="entry in updated" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=true />
+    <h2>{{ filteredUpdated.length }}/{{ updated.length }} Updated</h2>
+    <ListingWrapperComponent v-for="entry in filteredUpdated" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=true />
     <div v-if="updated.length === 0" class="read-the-docs">No updated listings</div>
   </div>
   <div class='deleted'>
-    <h2>{{ deleted.length }} Deleted</h2>
-    <ListingWrapperComponent v-for="entry in deleted" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=false />
+    <h2>{{ filteredDeleted.length }}/{{deleted.length }} Deleted</h2>
+    <ListingWrapperComponent v-for="entry in filteredDeleted" :key="entry.listing.id" :listing="entry.listing" :info="entry.info" :link=false />
     <div v-if="deleted.length === 0" class="read-the-docs">No deleted listings</div>
   </div>
 </template>

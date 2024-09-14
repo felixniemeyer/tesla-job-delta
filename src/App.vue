@@ -158,6 +158,9 @@ function goForward() {
 
 <template>
   <h1>Tesla Jobs Delta</h1>
+  <p>
+  Say hi to the author here: <a href="https://linktr.ee/fairlix">linktree</a> or <a href="mailto:niemeyer.felix@gmail.com">send an email</a>
+  </p>
   <template v-if="encouragement">
     <p>
       Great, you have already added the state of tesla jobs once. 
@@ -178,7 +181,7 @@ function goForward() {
     <button @click="setNewStatus">set current state</button>
     <span class=error>{{ error }}</span>
   </p>
-  <div  v-if="fromState && toState" >
+  <div v-if="fromState && toState" >
     <div class=info>
       <div class=button :class="{disabled: !canGoBack}" @click="goBack">
         &#9668;

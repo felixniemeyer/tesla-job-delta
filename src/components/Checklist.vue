@@ -93,17 +93,18 @@ function exclusiveSelect() {
     <input v-model="search" placeholder="Search" @input="expand" />
     <button @click="search = ''">X</button>
     <button @click="toggleCollapsed">{{ collapsed ? 'show' : 'hide' }}</button>
-    <div class='buttons'>
-      <button @click="selectNone">Select None</button>
-      <button @click="selectAll">Select All</button>
-      <button @click="invertSelection">Invert Selection</button> 
-      <template v-if='search !== ""'>
-        <span > (refers to search results) </span>
-        <button @click="exclusiveSelect">Exclusively Select Search Results</button>
-      </template>
-    </div>
     <div v-if="!collapsed" class='boxes'>
-      <span class=option v-for="value, key in filteredChecklist" :key="key">
+      <div class='buttons'>
+        <button @click="selectNone">Select None</button>
+        <button @click="selectAll">Select All</button>
+        <button @click="invertSelection">Invert Selection</button> 
+        <template v-if='search !== ""'>
+          <span > (applies to search results) </span>
+          <button @click="exclusiveSelect">Exclusively Select Search Results</button>
+        </template>
+      </div>
+      <span v-if="filteredChecklist.length === 0">No results</span>
+      <span v-else class=option v-for="value, i in filteredChecklist" :key="i">
         <label>
           <input type="checkbox" v-model="props.checklist[value.item.id]"/>
           {{ value.item.label }}
