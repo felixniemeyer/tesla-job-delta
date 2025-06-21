@@ -115,11 +115,11 @@ function filter({listing}: Entry) {
 }
 
 function different(from: Listing, to: Listing) {
-  Object.keys(from).forEach(key => {
+  for (const key of Object.keys(from)) {
     if ((from as any)[key] !== (to as any)[key]) {
       return true
     }
-  })
+  }
   return false
 }
 
