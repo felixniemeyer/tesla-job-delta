@@ -12,6 +12,9 @@ Tesla Jobs Tracker - A Vue 3 web application for tracking changes in Tesla job l
 - `npm run dev` - Start Vite development server
 - `npm run build` - TypeScript check + production build
 - `npm run preview` - Preview production build locally
+- `npm test` - Run unit tests with Vitest
+- `npm run test:ui` - Run tests with UI interface
+- `npm run coverage` - Run tests with coverage report
 
 ### Data Management
 - `node status-downloader/download-status.js public/states` - Fetch new job data from Tesla API and save with incremental ID
