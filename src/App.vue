@@ -172,6 +172,7 @@ function goForward() {
     Follow these manual steps: 
     <ol>
       <li>go to <a target="_blank" href="https://www.tesla.com/cua-api/apps/careers/state">https://www.tesla.com/cua-api/apps/careers/state</a></li>
+      <li>if the json is rather empty, visit <a href="https://www.tesla.com/careers/search">Tesla Careers</a> normaly first</li>
       <li>copy the json response to your clipboard</li>
       <li>paste the json in the following input field and submit</li>
     </ol>
